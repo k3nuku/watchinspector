@@ -23,7 +23,7 @@ private:
 public:
     afcapi();
     ~afcapi();
-    bool isInitialized();
+    bool is_initialized();
     bool copy_file_to_disk(std::string path);
     std::vector<std::string> get_file_info(std::string path);
     std::vector<std::string> read_directory(std::string directory);
