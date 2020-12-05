@@ -206,7 +206,7 @@ int afcapi::walk_directory(std::string root, char *dest) {
         auto val = get_file_info(next_dir);
 
         if (dest != NULL) {
-            sbuf = new char[strlen(dest) + next_dir.length()];
+            sbuf = new char[strlen(dest) + next_dir.length() + 1];
             strcpy(sbuf, dest);
             strcat(sbuf, next_dir.c_str());
         }
