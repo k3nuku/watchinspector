@@ -1,6 +1,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <fstream>
 #include "afcapi.h"
 
 afcapi::afcapi() {
@@ -161,9 +162,64 @@ std::vector<std::string> afcapi::get_file_info(std::string path) {
     return ret;
 }
 
-// Returns true if success
-bool afcapi::copy_file_to_disk(std::string path) {
-    // TODO using afc_file_open() and afc_file_read()
+// arguments: path = path of file, char **data = output
+// Returns amount of read bytes
+// **you need to FREE 'data' variable manually after use it
+uint64_t afcapi::read_file(std::string path, char **data) {
+    auto fileinfo = this->get_file_info(path);
+    uint32_t fsize;
+
+    if (fileinfo.size() == 0)
+        return -1;
+
+	for (int i = 0; i < fileinfo.size(); i += 2) {
+		if (strcmp(fileinfo[i].c_str(), "st_size") == 0) {
+			fsize = atol(fileinfo[i + 1].c_str());
+			break;
+		}
+	}
+
+	if (fsize == 0)
+		return -1;
+
+	uint64_t f = 0;
+	afc_file_open(afc, path.c_str(), AFC_FOPEN_RDONLY, &f);
+	if (!f)
+		return -1;
+
+	char *buf = (char *)malloc((uint32_t)fsize);
+
+	uint32_t done = 0;
+	while (done < fsize) {
+		uint32_t bread = 0;
+		afc_file_read(afc, f, buf + done, 65536, &bread);
+		if (bread > 0)
+			done += bread;
+		else break;
+	}
+	
+    if (done == fsize)
+		*data = buf;
+	else free(buf);
+
+	afc_file_close(afc, f);
+    return fsize;
+}
+
+bool afcapi::copy_file_to_disk(std::string path_on_device, std::string dest) {
+    std::ofstream out_stream;
+    out_stream.open(dest, std::ios::binary | std::ios::out);
+
+    char** data;
+    uint32_t fsize = read_file(path_on_device, data);
+
+    while (fsize > 0) {
+        if (fsize > BUF_SIZE)
+            out_stream.write(reinterpret_cast<char*>(data), (uint32_t)BUF_SIZE);
+        else out_stream.write(reinterpret_cast<char*>(data), fsize);
+        fsize -= BUF_SIZE;
+    }
+
     return false;
 }
 
@@ -224,7 +280,7 @@ int afcapi::walk_directory(std::string root, char *dest) {
             if (dest != NULL) {
                 std::cout << "    [i] Copying file to PC... ";
                 std::string cppstr = std::string(sbuf);
-                if (!copy_file_to_disk(cppstr))
+                if (!copy_file_to_disk(next_dir, cppstr))
                     std::cout << "FAILED" << std::endl;
                 else std::cout << "OK" << std::endl;
             }
