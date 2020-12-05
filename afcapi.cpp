@@ -103,7 +103,10 @@ bool afcapi::detect_and_pair_device() {
     }
     if (lerr == LOCKDOWN_E_SUCCESS)
         std::cout << "[i] Successfully paired: " << this->udid << std::endl;
-    else std::cout << "ERROR: FATAL Pairing error, ecode: " << lockdownd_strerror(lerr) << std::endl;
+    else {
+        std::cout << "ERROR: FATAL Pairing error, ecode: " << lockdownd_strerror(lerr) << std::endl;
+        return false;
+    }
 
     lockdownd_client_free(client);
     auto lderr = lockdownd_client_new_with_handshake(this->device, &client, this->APP_NAME);
