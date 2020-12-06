@@ -9,7 +9,7 @@ int main(int argc, char *argv[]) {
 
     if (api.is_initialized()) {
         std::cout << "[i] Starting walking Apple Watch's directory..." << std::endl;
-        auto count = api.walk_directory("", NULL); // putting "" actually search from root('/') directory.
+        auto count = api.walk_directory("", "/Users/sokdak/Desktop/out"); // putting "" actually search from root('/') directory.
         std::cout << "[i] Directory walk has been ended. " << count << " files and folders found." << std::endl;
     }
     else std::cout << "ERROR: AFCAPI initialization failed." << std::endl;
