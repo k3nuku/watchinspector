@@ -24,7 +24,7 @@ int main(int argc, char *argv[]) {
             case 'h':
             default:
             usage();
-            break;
+            return 1;
         }
     }
 
