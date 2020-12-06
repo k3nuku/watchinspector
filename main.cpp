@@ -19,7 +19,7 @@ int main(int argc, char *argv[]) {
     while ((opt = getopt(argc, argv, "hu:d:")) != -1) {
         switch (opt) {
             case 'd':
-                dest = optarg + 1; // skipping first space(0x20) character
+                dest = optarg;
                 break;
             case 'h':
             default:
