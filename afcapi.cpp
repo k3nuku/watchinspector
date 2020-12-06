@@ -165,7 +165,7 @@ std::vector<std::string> afcapi::get_file_info(std::string path) {
 // arguments: path = path of file, char **data = output
 // Returns amount of read bytes
 // **you need to FREE 'data' variable manually after use it
-uint64_t afcapi::read_file(std::string path, char **data) {
+uint32_t afcapi::read_file(std::string path, char **data) {
     auto fileinfo = this->get_file_info(path);
     uint32_t fsize;
 
