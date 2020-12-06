@@ -26,7 +26,7 @@ public:
     afcapi();
     ~afcapi();
     bool is_initialized();
-    uint64_t read_file(std::string path, char **data);
+    uint32_t read_file(std::string path, char **data);
     bool copy_file_to_disk(std::string path_on_device, std::string dest);
     std::vector<std::string> get_file_info(std::string path);
     std::vector<std::string> read_directory(std::string directory);
