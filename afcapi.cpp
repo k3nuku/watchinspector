@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include <fstream>
+#include <errno.h>
 #include "afcapi.h"
 
 afcapi::afcapi() {
@@ -206,21 +207,23 @@ uint32_t afcapi::read_file(std::string path, char **data) {
     return fsize;
 }
 
-bool afcapi::copy_file_to_disk(std::string path_on_device, std::string dest) {
+long afcapi::copy_file_to_disk(std::string path_on_device, std::string dest) {
+    char *data = NULL;
+    uint32_t fsize = read_file(path_on_device, &data);
+    uint32_t csize = fsize;
+
+    if (fsize <= 0 || fsize == UINT32_MAX)
+        return -1;
+
+    char buffer[BUF_SIZE];
     std::ofstream out_stream;
-    out_stream.open(dest, std::ios::binary | std::ios::out);
+    out_stream.rdbuf()->pubsetbuf(buffer, BUF_SIZE); // TODO enhance write performance on large file
+    out_stream.open(dest, std::ios::binary | std::ios::trunc);
+    out_stream.write(reinterpret_cast<char*>(data), fsize);
 
-    char** data;
-    uint32_t fsize = read_file(path_on_device, data);
-
-    while (fsize > 0) {
-        if (fsize > BUF_SIZE)
-            out_stream.write(reinterpret_cast<char*>(data), (uint32_t)BUF_SIZE);
-        else out_stream.write(reinterpret_cast<char*>(data), fsize);
-        fsize -= BUF_SIZE;
-    }
-
-    return false;
+    free(data);
+    out_stream.close();
+    return fsize;
 }
 
 // Returns directory structure
@@ -250,8 +253,10 @@ int afcapi::walk_directory(std::string root, char *dest) {
     auto entries = read_directory(root);
     char *sbuf = NULL;
 
-    if (dest != NULL && mkdir(dest, 0777) == -1) {
-        std::cout << "ERROR: failed to create directory " << dest << std::endl;
+    std::string dir_str(dest);
+    errno = 0;
+    if (dest != NULL && (mkdir((dir_str + root).c_str(), 0777) == -1) && errno != EEXIST) {
+        std::cout << "ERROR: failed to create directory " << dest + root << ", errmsg: "<< strerror(errno) << std::endl;
         return 0;
     }
     else if (dest != NULL)
@@ -272,7 +277,7 @@ int afcapi::walk_directory(std::string root, char *dest) {
 
         if (val[7] == "S_IFDIR") {
             std::cout << "  [Found] directory '" << next_dir << "'" << std::endl;
-            total_entities += walk_directory(next_dir, sbuf);
+            total_entities += walk_directory(next_dir, dest);
         }
         else {
             std::cout << "  [Found] file '" << next_dir + "'" << std::endl;
@@ -280,9 +285,10 @@ int afcapi::walk_directory(std::string root, char *dest) {
             if (dest != NULL) {
                 std::cout << "    [i] Copying file to PC... ";
                 std::string cppstr = std::string(sbuf);
-                if (!copy_file_to_disk(next_dir, cppstr))
-                    std::cout << "FAILED" << std::endl;
-                else std::cout << "OK" << std::endl;
+                long wbytes = -1;
+                if ((wbytes = copy_file_to_disk(next_dir, cppstr)) < 0)
+                    std::cout << "FAILED (File is locked from device)" << std::endl;
+                else std::cout << "OK (" << wbytes << "bytes)" << std::endl;
             }
         }
 
