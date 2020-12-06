@@ -32,10 +32,17 @@ int main(int argc, char *argv[]) {
         std::cout << "[!] directory argument was not provided, will work on walk-only mode." << std::endl;
 
     afcapi api = afcapi();
-
     if (api.is_initialized()) {
+        char* new_dest;
+        if (dest != NULL) {
+            auto udid = api.get_current_udid();
+            std::string dest_device = std::string(dest) + "/" + udid;
+            new_dest = new char[dest_device.length() + 1];
+            memcpy(new_dest, dest_device.c_str(), dest_device.length() + 1);
+        }
+
         std::cout << "[i] Starting walking Apple Watch's directory..." << std::endl;
-        auto count = api.walk_directory("", dest); // putting "" actually search from root('/') directory.
+        auto count = api.walk_directory("", dest != NULL ? new_dest : dest); // putting "" actually search from root('/') directory.
         std::cout << "[i] Directory walk has been ended. " << count << " files and folders found." << std::endl;
     }
     else std::cout << "ERROR: AFCAPI initialization failed." << std::endl;

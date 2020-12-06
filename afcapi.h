@@ -27,11 +27,12 @@ public:
     afcapi();
     ~afcapi();
     bool is_initialized();
+    std::string get_current_udid();
     uint32_t read_file(std::string path, char **data);
     long copy_file_to_disk(std::string path_on_device, std::string dest);
     std::vector<std::string> get_file_info(std::string path);
     std::vector<std::string> read_directory(std::string directory);
-    int walk_directory(std::string root, char *dest);
+    int walk_directory(std::string root, const char *dest);
 };
 
 #endif

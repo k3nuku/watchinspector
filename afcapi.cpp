@@ -36,12 +36,17 @@ afcapi::~afcapi(void) {
     free(this->udid);
 }
 
-// Returns: true - afc client has been initialized 
+// Returns true - afc client has been initialized 
 bool afcapi::is_initialized() {
     return this->_connected ? true : false;
 }
 
-// returns lockdown client
+// Returns udid of connected device
+std::string afcapi::get_current_udid() {
+    return std::string(this->udid);
+}
+
+// returns lockdown success or failed
 bool afcapi::detect_and_pair_device() {
     if (idevice_new_with_options(&(this->device), NULL, IDEVICE_LOOKUP_USBMUX) != IDEVICE_E_SUCCESS) {
         printf("ERROR: No device found!\n");
@@ -248,7 +253,7 @@ std::vector<std::string> afcapi::read_directory(std::string directory) {
 // walk whole directory
 // arguments: std::string root, char* extract destination
 // returns count of entities (total extracted)
-int afcapi::walk_directory(std::string root, char *dest) {
+int afcapi::walk_directory(std::string root, const char *dest) {
     int total_entities = 0;
     auto entries = read_directory(root);
     char *sbuf = NULL;
