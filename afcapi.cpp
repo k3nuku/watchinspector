@@ -37,7 +37,7 @@ afcapi::~afcapi(void) {
 }
 
 // Returns: true - afc client has been initialized 
-bool afcapi::isInitialized() {
+bool afcapi::is_initialized() {
     return this->_connected ? true : false;
 }
 
