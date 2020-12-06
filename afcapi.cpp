@@ -253,14 +253,15 @@ int afcapi::walk_directory(std::string root, char *dest) {
     auto entries = read_directory(root);
     char *sbuf = NULL;
 
-    std::string dir_str(dest);
-    errno = 0;
-    if (dest != NULL && (mkdir((dir_str + root).c_str(), 0777) == -1) && errno != EEXIST) {
-        std::cout << "ERROR: failed to create directory " << dest + root << ", errmsg: "<< strerror(errno) << std::endl;
-        return 0;
+    if (dest != NULL) {
+        std::string dir_str(dest);
+        errno = 0;
+        if ((mkdir((dir_str + root).c_str(), 0777) == -1) && errno != EEXIST) {
+            std::cout << "ERROR: failed to create directory " << dest + root << ", errmsg: "<< strerror(errno) << std::endl;
+            return 0;
+        }
+        else std::cout << "    [i] Directory created." << std::endl;
     }
-    else if (dest != NULL)
-        std::cout << "    [i] Directory created." << std::endl;
 
     for (auto entry : entries) {
         if (entry == "." || entry == "..")
