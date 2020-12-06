@@ -1,6 +1,8 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <fstream>
+#include <errno.h>
 #include "afcapi.h"
 
 afcapi::afcapi() {
@@ -35,7 +37,7 @@ afcapi::~afcapi(void) {
 }
 
 // Returns: true - afc client has been initialized 
-bool afcapi::isInitialized() {
+bool afcapi::is_initialized() {
     return this->_connected ? true : false;
 }
 
@@ -161,10 +163,67 @@ std::vector<std::string> afcapi::get_file_info(std::string path) {
     return ret;
 }
 
-// Returns true if success
-bool afcapi::copy_file_to_disk(std::string path) {
-    // TODO using afc_file_open() and afc_file_read()
-    return false;
+// arguments: path = path of file, char **data = output
+// Returns amount of read bytes
+// **you need to FREE 'data' variable manually after use it
+uint32_t afcapi::read_file(std::string path, char **data) {
+    auto fileinfo = this->get_file_info(path);
+    uint32_t fsize;
+
+    if (fileinfo.size() == 0)
+        return -1;
+
+	for (int i = 0; i < fileinfo.size(); i += 2) {
+		if (strcmp(fileinfo[i].c_str(), "st_size") == 0) {
+			fsize = atol(fileinfo[i + 1].c_str());
+			break;
+		}
+	}
+
+	if (fsize == 0)
+		return -1;
+
+	uint64_t f = 0;
+	afc_file_open(afc, path.c_str(), AFC_FOPEN_RDONLY, &f);
+	if (!f)
+		return -1;
+
+	char *buf = (char *)malloc((uint32_t)fsize);
+
+	uint32_t done = 0;
+	while (done < fsize) {
+		uint32_t bread = 0;
+		afc_file_read(afc, f, buf + done, 65536, &bread);
+		if (bread > 0)
+			done += bread;
+		else break;
+	}
+	
+    if (done == fsize)
+		*data = buf;
+	else free(buf);
+
+	afc_file_close(afc, f);
+    return fsize;
+}
+
+long afcapi::copy_file_to_disk(std::string path_on_device, std::string dest) {
+    char *data = NULL;
+    uint32_t fsize = read_file(path_on_device, &data);
+    uint32_t csize = fsize;
+
+    if (fsize <= 0 || fsize == UINT32_MAX)
+        return -1;
+
+    char buffer[BUF_SIZE];
+    std::ofstream out_stream;
+    out_stream.rdbuf()->pubsetbuf(buffer, BUF_SIZE); // TODO enhance write performance on large file
+    out_stream.open(dest, std::ios::binary | std::ios::trunc);
+    out_stream.write(reinterpret_cast<char*>(data), fsize);
+
+    free(data);
+    out_stream.close();
+    return fsize;
 }
 
 // Returns directory structure
@@ -194,8 +253,10 @@ int afcapi::walk_directory(std::string root, char *dest) {
     auto entries = read_directory(root);
     char *sbuf = NULL;
 
-    if (dest != NULL && mkdir(dest, 0777) == -1) {
-        std::cout << "ERROR: failed to create directory " << dest << std::endl;
+    std::string dir_str(dest);
+    errno = 0;
+    if (dest != NULL && (mkdir((dir_str + root).c_str(), 0777) == -1) && errno != EEXIST) {
+        std::cout << "ERROR: failed to create directory " << dest + root << ", errmsg: "<< strerror(errno) << std::endl;
         return 0;
     }
     else if (dest != NULL)
@@ -216,7 +277,7 @@ int afcapi::walk_directory(std::string root, char *dest) {
 
         if (val[7] == "S_IFDIR") {
             std::cout << "  [Found] directory '" << next_dir << "'" << std::endl;
-            total_entities += walk_directory(next_dir, sbuf);
+            total_entities += walk_directory(next_dir, dest);
         }
         else {
             std::cout << "  [Found] file '" << next_dir + "'" << std::endl;
@@ -224,9 +285,10 @@ int afcapi::walk_directory(std::string root, char *dest) {
             if (dest != NULL) {
                 std::cout << "    [i] Copying file to PC... ";
                 std::string cppstr = std::string(sbuf);
-                if (!copy_file_to_disk(cppstr))
-                    std::cout << "FAILED" << std::endl;
-                else std::cout << "OK" << std::endl;
+                long wbytes = -1;
+                if ((wbytes = copy_file_to_disk(next_dir, cppstr)) < 0)
+                    std::cout << "FAILED (File is locked from device)" << std::endl;
+                else std::cout << "OK (" << wbytes << "bytes)" << std::endl;
             }
         }
 

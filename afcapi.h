@@ -9,6 +9,9 @@
 #ifndef AFCAPI_H
 #define AFCAPI_H
 
+#define BUF_SIZE 4096
+#define UINT32_MAX 0x7fffffff * 2 + 1
+
 class afcapi {
 private:
     const char *APP_NAME = "afcapi";
@@ -23,8 +26,9 @@ private:
 public:
     afcapi();
     ~afcapi();
-    bool isInitialized();
-    bool copy_file_to_disk(std::string path);
+    bool is_initialized();
+    uint32_t read_file(std::string path, char **data);
+    long copy_file_to_disk(std::string path_on_device, std::string dest);
     std::vector<std::string> get_file_info(std::string path);
     std::vector<std::string> read_directory(std::string directory);
     int walk_directory(std::string root, char *dest);
