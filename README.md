@@ -1,4 +1,4 @@
-# watchinspector
+# watchinspector [![Build Status](https://travis-ci.com/sokdak/watchinspector.svg?branch=master)](https://travis-ci.com/sokdak/watchinspector)
 A simple Apple Watch internal directory extraction tool
 
 ## Coverage
@@ -6,8 +6,8 @@ A simple Apple Watch internal directory extraction tool
 - [x] AFC Service
 - [x] Inode information
 - [x] Directory walk
-- [ ] Single file read (TODO)
-- [ ] Directory extraction (TODO)
+- [x] Single file read
+- [x] Directory extraction
 
 ## Prerequisites
 First, you need to build a latest libimobiledevice from their repository if you wanna do this from latest WatchOS.
@@ -23,4 +23,4 @@ $ g++ --std=c++11 -g afcapi.cpp main.cpp -o watchinspector -limobiledevice-1.0
 ```
 
 ## Usage
-Just execute built one. It automatically find and pair with connected watch and extract directories.
+After build process, You can see usages when execute binary with ```-h``` option.
